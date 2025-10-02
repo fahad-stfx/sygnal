@@ -423,6 +423,13 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
         pushkeys: List[str],
         span: Span,
     ) -> Tuple[List[str], List[str]]:
+        log.debug(
+            "FCM V1 API response: status=%d, response=%r, pushkeys=%r",
+            response.code,
+            response_text,
+            pushkeys,
+        )
+        
         if 500 <= response.code < 600:
             log.debug("%d from server, waiting to try again", response.code)
 
