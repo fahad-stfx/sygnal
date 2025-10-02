@@ -226,7 +226,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
         )
 
     async def _perform_http_request(
-        self, body: Dict[str, Any], headers: Dict[AnyStr, List[AnyStr]]
+        self, body: Dict[str, Any], headers: Dict[AnyStr, List[AnyStr]], log: NotificationLoggerAdapter
     ) -> Tuple[IResponse, str]:
         """
         Perform an HTTP request to the FCM server with the body and headers
@@ -234,6 +234,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
         Args:
             body: Body. Will be JSON-encoded.
             headers: HTTP Headers.
+            log: Logger for the request.
 
         Returns:
 
@@ -253,6 +254,10 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
 
         try:
             with SEND_TIME_HISTOGRAM.time():
+                log.debug("Sending GCM request")
+                log.debug("=====Request Body Json =====> %r", json.dumps(body))
+                log.debug("=====Request=====>Headers====>: %r", Headers(headers))
+                log.debug("=====Request=====>BodyProducer====>: %r", body_producer)
                 with ACTIVE_REQUESTS_GAUGE.track_inprogress():
                     response = await self.http_agent.request(
                         b"POST",
@@ -260,6 +265,8 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                         headers=Headers(headers),
                         bodyProducer=body_producer,
                     )
+                    log.debug("=====Response=====>Headers====>: %r", Headers(response.headers))
+                    log.debug("=====Response=====>Body====>: %r", await readBody(response))
                     response_text = (await readBody(response)).decode()
         except Exception as exception:
             raise TemporaryNotificationDispatchException(
@@ -280,7 +287,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
     ) -> Tuple[List[str], List[str]]:
         poke_start_time = time.time()
 
-        response, response_text = await self._perform_http_request(body, headers)
+        response, response_text = await self._perform_http_request(body, headers, log)
 
         RESPONSE_STATUS_CODES_COUNTER.labels(
             pushkin=self.name, code=response.code
