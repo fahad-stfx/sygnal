@@ -255,9 +255,7 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
         try:
             with SEND_TIME_HISTOGRAM.time():
                 log.debug("Sending GCM request")
-                log.debug("=====Request Body Json =====> %r", json.dumps(body))
-                log.debug("=====Request=====>Headers====>: %r", Headers(headers))
-                log.debug("=====Request=====>BodyProducer====>: %r", body_producer)
+                log.debug("=====Sending Request Body Json =====> %r", json.dumps(body))
                 with ACTIVE_REQUESTS_GAUGE.track_inprogress():
                     response = await self.http_agent.request(
                         b"POST",
@@ -265,8 +263,6 @@ class GcmPushkin(ConcurrencyLimitedPushkin):
                         headers=Headers(headers),
                         bodyProducer=body_producer,
                     )
-                    log.debug("=====Response=====>Headers====>: %r", Headers(response.headers))
-                    log.debug("=====Response=====>Body====>: %r", await readBody(response))
                     response_text = (await readBody(response)).decode()
         except Exception as exception:
             raise TemporaryNotificationDispatchException(
